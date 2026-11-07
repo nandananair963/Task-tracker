@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACAS Activity Tracker — Prototype</title>
+<style>
+:root{--navy:#17365d;--blue:#24558a;--ink:#182433;--muted:#657386;--line:#dce3eb;--bg:#f4f6f9;--white:#fff;--green:#18794e;--amber:#a15c00;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",Arial,sans-serif}
+header{background:var(--navy);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:21px;margin:0 0 3px}header p{margin:0;color:#d6e2ef;font-size:12px}
+.wrap{max-width:1500px;margin:auto;padding:20px}
+.toolbar,.panel,.stat,.task-card{background:var(--white);border:1px solid var(--line);border-radius:10px}
+.toolbar{padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+button,select,input,textarea{font:inherit}button{border:1px solid #cbd5e1;background:#fff;border-radius:7px;padding:8px 11px;cursor:pointer;color:var(--ink)}
+button:hover{background:#f1f5f9}button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}button.primary:hover{background:var(--navy)}
+button.small{padding:5px 8px;font-size:12px}button.danger{color:var(--red)}
+select,input,textarea{border:1px solid #cbd5e1;border-radius:7px;padding:8px;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid #9cc4ed;border-color:#4386c6}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;margin-bottom:14px}.week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.week-day{border:1px solid var(--line);border-radius:8px;min-height:92px;padding:8px;background:#fff}.week-day.today{border:2px solid #4386c6;background:#f4f9ff}.week-day .day-name{font-size:11px;color:var(--muted);font-weight:700}.week-day .day-date{font-size:16px;font-weight:700;margin:3px 0 7px}.week-event{font-size:10px;padding:4px 5px;background:#eaf1fb;border-radius:5px;margin:4px 0;overflow-wrap:anywhere}.week-empty{font-size:10px;color:#9aa5b1}
+.deadline-bar{height:9px;width:76px;border-radius:20px;background:#cbd5e1;display:inline-block;vertical-align:middle}
+.deadline-green{background:#24945b}.deadline-orange{background:#e99a22}.deadline-red{background:#d93636}.deadline-blue{background:#3478d4}.deadline-grey{background:#b8c2ce}
+.close-task{font-size:17px;line-height:1;padding:3px 8px;color:#b42318;border-color:#f0c5c2;background:#fff}
+.closed-row{opacity:.55}
+
+.stat{padding:13px 15px}.stat .num{font-size:25px;font-weight:700}.stat .cap{font-size:12px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
+.panel{padding:14px}.panel h2{font-size:16px;margin:0 0 10px}
+.nav-group{margin-bottom:13px}.nav-group-title{font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:9px 0 6px}
+.nav-btn{display:flex;width:100%;justify-content:space-between;text-align:left;margin:3px 0;border-color:transparent;background:transparent}
+.nav-btn.active{background:#eaf1f8;border-color:#c7d8ea;color:var(--navy);font-weight:700}
+.nav-btn span:last-child{color:var(--muted);font-size:12px}
+.main-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.main-head h2{margin:0 0 3px;font-size:19px}.sub{color:var(--muted);font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filters input{flex:1;min-width:180px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:1050px}th,td{padding:10px 9px;text-align:left;border-bottom:1px solid #edf0f4;vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.035em;color:#586779;background:#f8fafc;position:sticky;top:0;z-index:1}td{font-size:12px}tr:last-child td{border-bottom:0}tbody tr:hover{background:#fbfdff}
+.task-title{font-weight:700;font-size:13px}.task-meta{color:var(--muted);font-size:11px;margin-top:3px}
+.pill{display:inline-block;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;background:#edf2f7;color:#465568;white-space:nowrap}
+.pill.green{background:#e8f5ed;color:var(--green)}.pill.amber{background:#fff3dc;color:var(--amber)}.pill.red{background:#fdebea;color:var(--red)}.pill.blue{background:#eaf1fb;color:#24558a}
+.progress{height:6px;background:#e8edf3;border-radius:10px;overflow:hidden;min-width:65px;margin-top:5px}.progress i{display:block;height:100%;background:#4386c6}
+.muted{color:var(--muted)}.empty{padding:30px;text-align:center;color:var(--muted)}
+.modal-back{position:fixed;inset:0;background:#10203388;display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal-back.open{display:flex}.modal{background:#fff;border-radius:12px;width:min(760px,100%);max-height:92vh;overflow:auto;padding:18px;box-shadow:0 18px 60px #0003}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.modal-head h2{margin:0;font-size:18px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%}.field textarea{min-height:72px;resize:vertical}
+.comments{border-top:1px solid var(--line);margin-top:16px;padding-top:13px}.comment{padding:9px 10px;background:#f7f9fb;border-radius:8px;margin:7px 0}.comment small{color:var(--muted)}
+.comment-form{display:flex;gap:7px;margin-top:9px}.comment-form input{flex:1}
+.footer-note{font-size:11px;color:var(--muted);margin-top:12px}
+.mobile-label{display:none}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.sidebar-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nav-group{margin:0}.wrap{padding:12px}}
+@media(max-width:700px){.week-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:540px){header{padding:15px}.wrap{padding:9px}.stats{gap:7px}.stat{padding:10px}.stat .num{font-size:21px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.comment-form{flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+ <div><h1>ACAS Activity & Task Tracker</h1><p>Standalone prototype · Role-based visibility · Projects and task tracker</p></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <button id="exportBtn">Export backup</button><button id="importBtn">Import backup</button><button id="resetBtn">Reset sample data</button>
+ </div>
+</header>
+<div class="wrap">
+ <div class="toolbar">
+  <div><label for="viewAs">Preview dashboard as</label><select id="viewAs">
+   <option value="ACAS">ACAS</option><option value="AC 1">AC 1</option><option value="AC 2">AC 2</option><option value="AC 3">AC 3</option>
+   <option value="DEE 1">DEE 1</option><option value="DEE 2">DEE 2</option><option value="DEE 3">DEE 3</option>
+   <option value="DEE 4">DEE 4</option><option value="DEE 5">DEE 5</option><option value="DEE 6">DEE 6</option>
+   <option value="DEE 7">DEE 7</option><option value="DEE 8">DEE 8</option><option value="DEE 9">DEE 9</option>
+   <optgroup label="JEE identities">
+    <option value="DEE 1 · JEE 1">DEE 1 · JEE 1</option><option value="DEE 1 · JEE 2">DEE 1 · JEE 2</option><option value="DEE 1 · JEE 3">DEE 1 · JEE 3</option><option value="DEE 1 · JEE 4">DEE 1 · JEE 4</option><option value="DEE 1 · JEE 5">DEE 1 · JEE 5</option><option value="DEE 2 · JEE 1">DEE 2 · JEE 1</option><option value="DEE 2 · JEE 2">DEE 2 · JEE 2</option><option value="DEE 2 · JEE 3">DEE 2 · JEE 3</option><option value="DEE 2 · JEE 4">DEE 2 · JEE 4</option><option value="DEE 2 · JEE 5">DEE 2 · JEE 5</option><option value="DEE 3 · JEE 1">DEE 3 · JEE 1</option><option value="DEE 3 · JEE 2">DEE 3 · JEE 2</option><option value="DEE 3 · JEE 3">DEE 3 · JEE 3</option><option value="DEE 3 · JEE 4">DEE 3 · JEE 4</option><option value="DEE 3 · JEE 5">DEE 3 · JEE 5</option><option value="DEE 4 · JEE 1">DEE 4 · JEE 1</option><option value="DEE 4 · JEE 2">DEE 4 · JEE 2</option><option value="DEE 4 · JEE 3">DEE 4 · JEE 3</option><option value="DEE 4 · JEE 4">DEE 4 · JEE 4</option><option value="DEE 4 · JEE 5">DEE 4 · JEE 5</option><option value="DEE 5 · JEE 1">DEE 5 · JEE 1</option><option value="DEE 5 · JEE 2">DEE 5 · JEE 2</option><option value="DEE 5 · JEE 3">DEE 5 · JEE 3</option><option value="DEE 5 · JEE 4">DEE 5 · JEE 4</option><option value="DEE 5 · JEE 5">DEE 5 · JEE 5</option><option value="DEE 6 · JEE 1">DEE 6 · JEE 1</option><option value="DEE 6 · JEE 2">DEE 6 · JEE 2</option><option value="DEE 6 · JEE 3">DEE 6 · JEE 3</option><option value="DEE 6 · JEE 4">DEE 6 · JEE 4</option><option value="DEE 6 · JEE 5">DEE 6 · JEE 5</option><option value="DEE 7 · JEE 1">DEE 7 · JEE 1</option><option value="DEE 7 · JEE 2">DEE 7 · JEE 2</option><option value="DEE 7 · JEE 3">DEE 7 · JEE 3</option><option value="DEE 7 · JEE 4">DEE 7 · JEE 4</option><option value="DEE 7 · JEE 5">DEE 7 · JEE 5</option><option value="DEE 8 · JEE 1">DEE 8 · JEE 1</option><option value="DEE 8 · JEE 2">DEE 8 · JEE 2</option><option value="DEE 8 · JEE 3">DEE 8 · JEE 3</option><option value="DEE 8 · JEE 4">DEE 8 · JEE 4</option><option value="DEE 8 · JEE 5">DEE 8 · JEE 5</option><option value="DEE 9 · JEE 1">DEE 9 · JEE 1</option><option value="DEE 9 · JEE 2">DEE 9 · JEE 2</option><option value="DEE 9 · JEE 3">DEE 9 · JEE 3</option><option value="DEE 9 · JEE 4">DEE 9 · JEE 4</option><option value="DEE 9 · JEE 5">DEE 9 · JEE 5</option>
+   </optgroup>
+  </select></div>
+  <div style="flex:1"></div><span class="sub">Demo identity is selectable for testing; use official accounts in a deployed version.</span>
+ </div>
+ <section class="panel" id="weekPanel" style="margin-bottom:14px"><div class="main-head"><div><h2 style="margin:0">Weekly calendar</h2><div class="sub" id="weekLabel"></div></div><div style="display:flex;align-items:center;gap:7px"><button type="button" class="small" id="prevWeekBtn" aria-label="Previous week" title="Previous week">←</button><span class="pill blue">Weekly schedule</span><button type="button" class="small" id="nextWeekBtn" aria-label="Next week" title="Next week">→</button></div></div><div id="weekCalendar" class="week-grid"></div></section>
+ <div class="layout">
+  <aside class="panel"><h2>Organisation</h2><div id="acasShortcuts" style="display:none;gap:6px;margin-bottom:12px">
+ <button class="small" id="allProjectsBtn" style="width:100%">All consolidated projects</button>
+ <button class="small" id="allTasksBtn" style="width:100%">All consolidated tasks</button>
+ </div><div id="orgNav" class="sidebar-content"></div></aside>
+  <main class="panel">
+   <div class="main-head"><div><h2 id="sectionTitle">All activities</h2><div class="sub" id="sectionSub">Consolidated view across all divisions</div></div>
+    <button class="primary" id="addTaskBtn">＋ Add activity</button>
+   </div>
+   <div class="toolbar" style="margin-bottom:12px;padding:7px">
+    <button id="projectsTab" class="primary">Projects</button>
+    <button id="trackerTab">Task Tracker</button>
+    <span class="sub" id="tabHint" style="margin-left:auto">Project portfolio</span>
+   </div>
+   <div class="filters" id="filters">
+    <input id="search" placeholder="Search title, category, owner or remarks…">
+    <select id="statusFilter"><option value="">All statuses</option><option>Not Started</option><option>In Progress</option><option>Pending</option><option>Delayed</option><option>Completed</option></select>
+    <select id="categoryFilter"><option value="">All categories</option><option>Project</option><option>Letter</option><option>Meeting</option><option>Procurement</option><option>Report / Study</option><option>Approval</option><option>Technical Matter</option><option>Other</option></select>
+   </div>
+   <div class="table-wrap" id="taskTableWrap"><table>
+    <thead><tr><th>Activity / Task</th><th>Category</th><th>Responsibility</th><th>Status</th><th>Due date</th><th>Latest remarks</th><th>Remarks by</th><th>Last updated</th><th>Action</th></tr></thead>
+    <tbody id="taskRows"></tbody>
+   </table></div><div id="blankHint" class="empty" style="display:none">Select an AC or DEE from the left, or choose a consolidated view above, to display its work.</div>
+   <div class="footer-note">Prototype data is saved in this browser on this device only. It does not synchronise between separate users or computers.</div>
+  </main>
+ </div>
+</div>
+
+<div class="modal-back" id="modalBack">
+ <div class="modal">
+  <div class="modal-head"><h2 id="modalTitle">Activity details</h2><button id="closeModal">✕</button></div>
+  <form id="taskForm" novalidate>
+   <input type="hidden" id="taskId">
+   <div class="form-grid">
+    <div class="field"><label>Activity title *</label><input id="title" required placeholder="Enter task or activity"></div>
+    <div class="field"><label>Category</label><select id="category"><option>Project</option><option>Letter</option><option>Meeting</option><option>Procurement</option><option>Report / Study</option><option>Approval</option><option>Technical Matter</option><option>Other</option></select></div>
+    <div class="field" id="acasAssignmentField"><label>Assign directly to AC / DEE</label><select id="assignmentTarget"></select></div>
+    <div class="field" id="acField"><label>Assign to AC</label><select id="ac"><option>AC 1</option><option>AC 2</option><option>AC 3</option></select></div>
+    <div class="field" id="deeField"><label>DEE / assignment level</label><select id="dee"></select></div>
+    <div class="field"><label>Responsible JEE</label><select id="jee"></select></div>
+    <div class="field"><label>Priority</label><select id="priority"><option>Low</option><option selected>Normal</option><option>High</option><option>Critical</option></select></div>
+    <div class="field"><label>Status</label><select id="status"><option>Not Started</option><option>In Progress</option><option>Pending</option><option>Delayed</option><option>Completed</option></select></div>
+    
+    <div class="field"><label>Due date</label><input id="dueDate" type="date"></div>
+    <div class="field full"><label>Latest remarks</label><textarea id="remarks" placeholder="Add the latest update or context…"></textarea></div>
+   </div>
+   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:13px"><button type="button" id="cancelBtn">Cancel</button><button class="primary" id="saveActivityBtn" type="button">Save activity</button></div>
+  </form>
+ </div>
+</div>
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script>
+const KEY='acas_activity_tracker_v1';
+const acs=['AC 1','AC 2','AC 3'];
+const dees=acs.flatMap((a,i)=>[1,2,3].map(n=>({name:`DEE ${(i*3)+n}`,ac:a})));
+const jees=dees.flatMap(d=>[1,2,3,4,5].map(n=>({name:`${d.name} · JEE ${n}`,dee:d.name,short:`JEE ${n}`})));
+const $=id=>document.getElementById(id);
+const now=()=>new Date().toISOString();
+const stamp=iso=>iso?new Date(iso).toLocaleString():'—';
+const currentUser=()=> $('viewAs').value;
+function seed(){
+ const examples=[
+ ['Radar upgrade coordination','Project','AC 1','DEE 1',1,'In Progress',45,'2026-12-10','Technical review underway; next milestone being coordinated.'],
+ ['Reply to HQ letter','Letter','AC 1','DEE 1',2,'Pending',20,'2026-11-12','Draft reply is under preparation.'],
+ ['Monthly review meeting','Meeting','AC 1','DEE 2',1,'Not Started',0,'2026-11-20','Agenda inputs awaited from concerned sections.'],
+ ['Vendor proposal examination','Procurement','AC 2','DEE 4',3,'Delayed',35,'2026-11-18','Clarification is awaited; revised timeline to be examined.'],
+ ['Technical assessment report','Report / Study','AC 3','DEE 8',4,'Completed',100,'2026-11-04','Report submitted for review.']
+ ];
+ return examples.map((x,i)=>({id:'ACT-'+String(i+1).padStart(4,'0'),title:x[0],category:x[1],ac:x[2],dee:x[3],jee:`${x[3]} · JEE ${x[4]}`,priority:i===3?'High':'Normal',status:x[5],progress:x[6],startDate:'2026-11-01',dueDate:x[7],remarks:x[8],remarksBy:x[3]+' · DEE',updatedAt:now(),updatedBy:x[3]+' · DEE',comments:[{text:x[8],by:x[3]+' · DEE',at:now()}]}));
+}
+let tasks;
+try{tasks=JSON.parse(localStorage.getItem(KEY))||seed()}catch(e){tasks=seed()}
+function persist(){
+ try{localStorage.setItem(KEY,JSON.stringify(tasks));return true}
+ catch(err){console.warn('Browser storage is unavailable; changes remain in this open session.',err);return false}
+}
+tasks.forEach(t=>{if(!t.createdAt)t.createdAt=t.startDate?new Date(t.startDate+'T00:00:00').toISOString():now();});
+let selected='NONE',activeId=null,activeTab='projects';
+function ownerName(task){return task.jee||task.dee}
+function visibleTasks(){
+ const view=currentUser();
+ let list=tasks.filter(t=>{
+  if(t.closed)return false;
+  if(view==='ACAS')return true;
+  if(acs.includes(view))return t.ac===view;
+  if(dees.some(d=>d.name===view))return t.dee===view;
+  if(view.includes(' · JEE '))return t.jee===view;
+  return false;
+ });
+ if(selected==='NONE'){if(view==='ACAS')return [];}
+ else if(selected==='ALL'){
+  // ACAS consolidated view: every non-project task assigned directly to an AC or to any DEE.
+  if(view==='ACAS'&&activeTab==='tracker')list=list.filter(t=>t.ac && t.category!=='Project');
+ }else if(acs.includes(selected)){
+  list=list.filter(t=>t.ac===selected&&!t.dee);
+ }else if(dees.some(d=>d.name===selected)){
+  list=list.filter(t=>t.dee===selected);
+ }else if(selected.includes(' · JEE ')){
+  list=list.filter(t=>t.jee===selected);
+ }
+ list=list.filter(t=>activeTab==='projects'?t.category==='Project':t.category!=='Project');
+ const q=$('search').value.toLowerCase().trim(),st=$('statusFilter').value,c=$('categoryFilter').value;
+ return list.filter(t=>(!q||[t.title,t.category,t.jee,t.dee,t.ac,t.remarks,t.remarksBy].join(' ').toLowerCase().includes(q))&&(!st||t.status===st)&&(!c||t.category===c));
+}
+let calendarWeekOffset=0;
+function renderCalendar(){
+ const list=visibleTasks();
+ const nowDate=new Date();
+ const day=nowDate.getDay();
+ const monday=new Date(nowDate);monday.setDate(nowDate.getDate()+(day===0?-6:1-day)+calendarWeekOffset*7);monday.setHours(0,0,0,0);
+ const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+ $('weekLabel').textContent=monday.toLocaleDateString(undefined,{day:'numeric',month:'short'})+' – '+sunday.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+ const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+ $('weekCalendar').innerHTML=days.map((name,i)=>{
+  const d=new Date(monday);d.setDate(monday.getDate()+i);
+  const key=d.toISOString().slice(0,10);
+  const events=list.filter(t=>(t.dueDate===key)||(t.startDate===key));
+  const today=d.toDateString()===nowDate.toDateString();
+  return `<div class="week-day ${today?'today':''}"><div class="day-name">${name}</div><div class="day-date">${d.getDate()}</div>${events.length?events.slice(0,3).map(t=>`<div class="week-event" title="${esc(t.title)}">${esc(t.title)}</div>`).join(''):'<div class="week-empty">No items</div>'}${events.length>3?`<div class="week-empty">+${events.length-3} more</div>`:''}</div>`;
+ }).join('');
+}
+function renderNav(){
+ const view=currentUser();
+ $('acasShortcuts').style.display=view==='ACAS'?'grid':'none';
+ let html='';
+ if(view==='ACAS'){
+  acs.forEach(ac=>{
+   html+=`<div class="nav-group"><button class="nav-btn ${selected===ac?'active':''}" data-key="${ac}"><span>${ac}</span><span>${tasks.filter(t=>t.ac===ac&&!t.dee&&t.category!=='Project').length}</span></button>`;
+   dees.filter(d=>d.ac===ac).forEach(d=>{
+    const n=tasks.filter(t=>t.dee===d.name&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length;
+    html+=`<button class="nav-btn ${selected===d.name?'active':''}" data-key="${d.name}" style="padding-left:20px"><span>↳ ${d.name}</span><span>${n}</span></button>`;
+   });
+   html+='</div>';
+  });
+ }else if(acs.includes(view)){
+  html+=`<div class="nav-group"><div class="nav-group-title">${view} · Your vertical</div><button class="nav-btn ${selected==='ALL'?'active':''}" data-key="ALL"><span>All activities</span><span>${tasks.filter(t=>t.ac===view&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length}</span></button></div>`;
+  dees.filter(d=>d.ac===view).forEach(d=>{
+   const n=tasks.filter(t=>t.dee===d.name&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length;
+   html+=`<div class="nav-group"><button class="nav-btn ${selected===d.name?'active':''}" data-key="${d.name}"><span>${d.name}</span><span>${n}</span></button>`;
+   [1,2,3,4,5].forEach(j=>{const key=`${d.name} · JEE ${j}`,jn=tasks.filter(t=>t.jee===key&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length;html+=`<button class="nav-btn ${selected===key?'active':''}" data-key="${key}" style="padding-left:20px"><span>↳ JEE ${j}</span><span>${jn}</span></button>`});
+   html+='</div>';
+  });
+ }else if(dees.some(d=>d.name===view)){
+  html+=`<div class="nav-group"><div class="nav-group-title">${view} · Your portfolio</div><button class="nav-btn ${selected==='ALL'?'active':''}" data-key="ALL"><span>All activities</span><span>${tasks.filter(t=>t.dee===view&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length}</span></button>`;
+  [1,2,3,4,5].forEach(j=>{const key=`${view} · JEE ${j}`,n=tasks.filter(t=>t.jee===key&&(activeTab==='projects'?t.category==='Project':t.category!=='Project')).length;html+=`<button class="nav-btn ${selected===key?'active':''}" data-key="${key}"><span>JEE ${j}</span><span>${n}</span></button>`});
+  html+='</div>';
+ }
+ $('orgNav').innerHTML=html;
+ $('orgNav').querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{
+  selected=b.dataset.key;
+  // ACAS selecting an AC opens only directly assigned tasks; DEE selection opens its task list.
+  if(view==='ACAS')activeTab='tracker';
+  render();
+ });
+}
+function visibleCategoryCount(){return tasks.filter(t=>activeTab==='projects'?t.category==='Project':t.category!=='Project').length}
+function pill(status){let cls=status==='Completed'?'green':status==='Delayed'?'red':status==='Pending'?'amber':status==='In Progress'?'blue':'';return `<span class="pill ${cls}">${status}</span>`}
+function deadlineClass(t){
+ if(t.status==='Completed')return 'deadline-blue';
+ if(!t.dueDate)return 'deadline-grey';
+ const today=new Date();today.setHours(0,0,0,0);
+ const due=new Date(t.dueDate+'T00:00:00');
+ const days=Math.ceil((due-today)/86400000);
+ if(days>4)return 'deadline-green';
+ if(days>=2&&days<=3)return 'deadline-orange';
+ return 'deadline-red';
+}
+function renderRows(){
+ const list=visibleTasks(),view=currentUser(),isAcas=view==='ACAS';
+ const head=$('taskRows').closest('table').querySelector('thead');
+ head.innerHTML=`<tr><th>Activity / Task</th><th>Category</th><th>Responsibility</th><th>Status</th><th>Due date</th><th>Latest remarks</th><th>Remarks by</th><th>Last updated</th><th>Action</th></tr>`;
+ $('taskRows').innerHTML=list.length?list.map(t=>`<tr>
+ <td><div class="task-title">${esc(t.title)}</div><div class="task-meta">${esc(t.id)} · ${esc(t.ac)}${t.dee?' / '+esc(t.dee):''}</div></td>
+ <td>${esc(t.category)}</td><td>${esc(isAcas?(t.dee||t.ac):(t.jee||t.dee||t.ac))}</td>
+ <td><span class="deadline-bar ${deadlineClass(t)}" title="${t.status==='Completed'?'Completed':t.dueDate?'Due '+esc(t.dueDate):'No due date'}"></span></td>
+ <td>${esc(t.dueDate||'—')}</td><td>${esc(t.remarks||'—')}</td><td>${esc(t.remarksBy||'—')}</td><td>${stamp(t.updatedAt)}</td>
+ <td><button class="small primary" data-edit="${t.id}">Open / Edit</button> ${t.status==='Completed'?`<button class="close-task" title="Close completed task" data-close="${t.id}">×</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" class="empty">No ${activeTab==='projects'?'projects':'tracker tasks'} match this view.</td></tr>`;
+ $('taskRows').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openTask(b.dataset.edit));
+ $('taskRows').querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{
+  const t=tasks.find(x=>x.id===b.dataset.close);if(!t)return;
+  if(confirm('Close this completed task? It will be removed from active dashboards but retained in the data history.')){
+   t.closed=true;t.closedAt=now();t.closedBy=currentUser();persist();render();
+  }
+ });
+}
+function render(){
+ renderNav();renderCalendar();renderRows();
+ const view=currentUser();
+ const blankAcas=view==='ACAS'&&selected==='NONE';
+ const acSelected=view==='ACAS'&&acs.includes(selected);
+ $('sectionTitle').textContent=blankAcas?'Select an AC or consolidated view':(selected==='ALL'?'All consolidated ':selected+' · ')+(activeTab==='projects'?'Projects':'Tasks');
+ $('sectionSub').textContent=blankAcas?'Select an AC or DEE, or use a consolidated button below':acSelected?`${selected} · showing only tasks assigned directly to this AC`:view==='ACAS'?'Responsibility · showing activities assigned to this DEE':acs.includes(view)?`${view} · own vertical, including its DEEs and JEEs`:dees.some(d=>d.name===view)?`${view} · own portfolio and five JEE assignments`:`${view} · assigned activities`;
+ $('projectsTab').className=activeTab==='projects'?'primary':'';
+ $('trackerTab').className=activeTab==='tracker'?'primary':'';
+ $('allProjectsBtn').className=activeTab==='projects'&&selected==='ALL'?'small primary':'small';
+ $('allTasksBtn').className=activeTab==='tracker'&&selected==='ALL'?'small primary':'small';
+ $('tabHint').textContent=activeTab==='projects'?'Project portfolio only':'Letters, meetings, approvals, reports and all other non-project tasks';
+ const disableProjects=acSelected;
+ $('projectsTab').disabled=disableProjects;
+ $('projectsTab').style.opacity=disableProjects?'.4':'1';
+ $('projectsTab').title=disableProjects?'Projects are displayed under a DEE, not directly under an AC':'';
+ $('categoryFilter').value='';
+ $('categoryFilter').disabled=false;
+ if(activeTab==='projects'){$('categoryFilter').value='Project';$('categoryFilter').disabled=true;}
+ else $('categoryFilter').querySelector('option[value="Project"]').disabled=true;
+ $('addTaskBtn').disabled=false;
+ $('addTaskBtn').title=blankAcas?'Add an activity and assign it to an AC or DEE':'Add a new activity';
+ $('filters').style.display=blankAcas?'none':'flex';
+ $('taskTableWrap').style.display=blankAcas?'none':'block';
+ $('blankHint').style.display=blankAcas?'block':'none';
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fillSelects(){
+ updateDeeOptions();
+ updateJeeOptions();
+}
+function updateDeeOptions(){
+ const selectedAc=$('ac').value||'AC 1';
+ const currentDee=$('dee').value;
+ const allowed=dees.filter(d=>d.ac===selectedAc);
+ $('dee').innerHTML=allowed.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
+ if(currentDee && allowed.some(d=>d.name===currentDee)) $('dee').value=currentDee;
+ else $('dee').value=allowed[0]?.name||'';
+ updateJeeOptions();
+}
+function updateJeeOptions(){
+ const d=$('dee').value;
+ $('jee').innerHTML=d?[1,2,3,4,5].map(n=>`<option value="${d} · JEE ${n}">${d} · JEE ${n}</option>`).join(''):'<option value="">Not yet assigned to a JEE</option>';
+ $('jee').disabled=!d;
+ $('jee').closest('.field').style.display=(currentUser()==='ACAS'||!d)?'none':'block';
+}
+function fillAcasAssignmentTarget(task){
+ const options=[
+  ...acs.map(a=>({value:`AC|${a}`,label:a})),
+  ...dees.map(d=>({value:`DEE|${d.name}`,label:`${d.name} (${d.ac})`}))
+ ];
+ $('assignmentTarget').innerHTML=options.map(o=>`<option value="${o.value}">${o.label}</option>`).join('');
+ const value=task?(task.dee?`DEE|${task.dee}`:`AC|${task.ac}`):'AC|AC 1';
+ $('assignmentTarget').value=value;
+}
+function openTask(id){
+ activeId=id||null;
+ const t=tasks.find(x=>x.id===id);
+ const isAcas=currentUser()==='ACAS';
+ $('modalTitle').textContent=t?'Activity details':'New activity';
+ $('taskId').value=t?.id||'';
+ $('title').value=t?.title||'';
+ $('category').value=t?.category||(activeTab==='projects'?'Project':'Letter');
+ $('acasAssignmentField').style.display=isAcas?'block':'none';
+ $('acField').style.display=isAcas?'none':'block';
+ $('deeField').style.display=isAcas?'none':'block';
+ $('ac').value=t?.ac||(acs.includes(currentUser())?currentUser():(dees.find(d=>d.name===currentUser())?.ac||'AC 1'));
+ updateDeeOptions();
+ if(t?.dee)$('dee').value=t.dee;
+ else if(dees.some(d=>d.name===currentUser()))$('dee').value=currentUser();
+ updateJeeOptions();
+ if(t?.jee)$('jee').value=t.jee;
+ else if($('jee').options.length)$('jee').selectedIndex=0;
+ if(isAcas)fillAcasAssignmentTarget(t);
+ $('priority').value=t?.priority||'Normal';
+ $('status').value=t?.status||'Not Started';
+ $('dueDate').value=t?.dueDate||'';
+ $('remarks').value=t?.remarks||'';
+ $('modalBack').classList.add('open');
+}
+function closeModal(){$('modalBack').classList.remove('open');activeId=null}
+$('dee').addEventListener('change',updateJeeOptions);
+$('ac').addEventListener('change',()=>{updateDeeOptions()});
+function saveActivity(e){
+ if(e){e.preventDefault();e.stopPropagation();}
+ const saveBtn=$('saveActivityBtn');
+ if(saveBtn)saveBtn.disabled=true;
+ try{
+  const title=$('title').value.trim();
+  if(!title){alert('Please enter an activity title.');$('title').focus();return;}
+  const user=currentUser();
+  let ac=$('ac').value, dee=$('dee').value, jee=$('jee').value;
+  if(user==='ACAS'){
+   const target=$('assignmentTarget').value.split('|');
+   if(target[0]==='AC'){ac=target[1];dee='';jee='';}
+   else {dee=target[1];ac=dees.find(d=>d.name===dee)?.ac||'';jee='';}
+  }
+  if(!ac){alert('Please select an assignment.');return;}
+  const id=$('taskId').value||'ACT-'+String(Math.max(0,...tasks.map(t=>Number(String(t.id).split('-')[1])||0))+1).padStart(4,'0');
+  const t=tasks.find(x=>x.id===id);
+  const oldRemarks=t?.remarks;
+  const createdAt=t?.createdAt||now();
+  const data={id,title,category:$('category').value,ac,dee,jee:user==='ACAS'?'':(dee?jee:''),priority:$('priority').value,status:$('status').value,startDate:t?.startDate||createdAt.slice(0,10),createdAt,dueDate:$('dueDate').value,remarks:$('remarks').value.trim(),remarksBy:oldRemarks===$('remarks').value.trim()?(t?.remarksBy||user):user,updatedAt:now(),updatedBy:user,comments:t?.comments||[]};
+  if(!t){data.comments=[];tasks.unshift(data);}else Object.assign(t,data);
+  // Keep the dashboard in the newly assigned activity's scope so it appears immediately.
+  if(user==='ACAS') selected=dee||ac;
+  else if(acs.includes(user)) selected=dee||'ALL';
+  else if(dees.some(d=>d.name===user)) selected=user;
+  else if(user.includes(' · JEE ')) selected=user;
+  activeTab=data.category==='Project'?'projects':'tracker';
+  $('search').value='';
+  $('statusFilter').value='';
+  $('categoryFilter').value='';
+  persist();
+  closeModal();
+  render();
+ }catch(err){
+  console.error('Unable to save activity:',err);
+  alert('The activity could not be saved. Please try again.');
+ }finally{
+  if(saveBtn)saveBtn.disabled=false;
+ }
+}
+$('taskForm').addEventListener('submit',saveActivity);
+$('saveActivityBtn').addEventListener('click',saveActivity);
+
+$('allProjectsBtn').onclick=()=>{activeTab='projects';selected='ALL';$('search').value='';$('statusFilter').value='';$('categoryFilter').value='';render();$('allProjectsBtn').className='small primary'};
+$('allTasksBtn').onclick=()=>{activeTab='tracker';selected='ALL';$('search').value='';$('statusFilter').value='';$('categoryFilter').value='';render();$('allTasksBtn').className='small primary'};
+$('projectsTab').onclick=()=>{if($('projectsTab').disabled)return;activeTab='projects';render()};
+$('trackerTab').onclick=()=>{activeTab='tracker';render()};
+$('prevWeekBtn').onclick=()=>{calendarWeekOffset--;renderCalendar()};
+$('nextWeekBtn').onclick=()=>{calendarWeekOffset++;renderCalendar()};
+$('addTaskBtn').onclick=()=>openTask(null);
+$('closeModal').onclick=closeModal;$('cancelBtn').onclick=closeModal;
+$('modalBack').addEventListener('click',e=>{if(e.target===$('modalBack'))closeModal()});
+['search','statusFilter','categoryFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+$('viewAs').addEventListener('change',()=>{selected=currentUser()==='ACAS'?'NONE':'ALL';activeTab='tracker';render()});
+$('exportBtn').onclick=()=>{
+ const blob=new Blob([JSON.stringify({version:1,exportedAt:now(),tasks},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acas-activity-tracker-backup.json';a.click();URL.revokeObjectURL(a.href);
+};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.tasks))throw Error('Invalid file');tasks=d.tasks;persist();render();alert('Backup imported.')}catch(err){alert('Could not import this backup file.')}e.target.value=''};
+$('resetBtn').onclick=()=>{if(confirm('Reset this browser prototype to the original sample activities? Your current local changes will be replaced.')){tasks=seed();persist();selected='ALL';render()}};
+fillSelects();render();
+</script>
+</body>
+</html>
